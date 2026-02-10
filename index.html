@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="nl-BE">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masterclass AI - Update Persona & Flow</title>
+    <style>
+        /* =========================================
+           BASIS STIJLEN
+           ========================================= */
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent-green: #48bb78;
+            --accent-red: #e53e3e;
+            --accent-orange: #ed8936;
+            --accent-mistral: #f59e0b; 
+            --accent-firefly: #ff0000;
+            --text-dark: #1a202c; 
+            --text-light: #4a5568;
+            --bg-body: #f7fafc;
+            --slide-bg: #ffffff;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--gradient);
+            height: 100vh; width: 100vw; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+            color: var(--text-dark);
+        }
+
+        a { color: var(--primary); text-decoration: none; border-bottom: 2px solid var(--primary); transition: 0.2s; }
+        a:hover { color: var(--secondary); border-color: var(--secondary); }
+
+        #presentation-container {
+            width: 100%; height: 100%; position: relative;
+            background: var(--bg-body); overflow: hidden;
+        }
+
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--slide-bg); 
+            padding: 2rem 5rem;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.4s ease-in-out, visibility 0.4s;
+            overflow-y: auto; z-index: 1;
+        }
+
+        .slide.active { opacity: 1; visibility: visible; z-index: 2; }
+
+        /* TYPOGRAFIE */
+        h1 { font-size: 3.5em; margin-bottom: 0.5em; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; line-height: 1.2; }
+        h2 { font-size: 2.8em; margin-bottom: 0.6em; color: var(--secondary); font-weight: 700; }
+        h3 { font-size: 1.4em; color: var(--text-dark); margin-bottom: 0.4em; font-weight: 700; }
+        p, li { font-size: 1.2em; line-height: 1.6; color: var(--text-dark); margin-bottom: 0.5em; }
+
+        /* --- LAYOUT GRIDS --- */
+        .split-layout { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 40px; 
+            width: 100%; margin-bottom: 20px; align-items: stretch;
+        }
+
+        .grid-layout { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; 
+            width: 100%; margin-top: 20px; 
+        }
+
+        /* --- STIJLEN VOOR TOOL SLIDES --- */
+        .tool-header { display: flex; align-items: center; gap: 25px; margin-bottom: 20px; }
+        .tool-logo-lg { height: 80px; width: auto; object-fit: contain; }
+        .tool-title h2 { margin: 0; font-size: 2.5em; color: var(--text-dark); }
+        .tool-title span { font-size: 1.1em; color: var(--text-light); font-weight: normal; }
+
+        .feature-col {
+            background: #fff; border-radius: 12px; padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+            display: flex; flex-direction: column; 
+            height: auto;
+        }
+        .feature-col.pros { border-top: 5px solid var(--accent-green); background: #f0fff4; }
+        .feature-col.pros h3 { color: var(--accent-green); }
+        .feature-col.cons { border-top: 5px solid var(--accent-orange); background: #fffaf0; }
+        .feature-col.cons h3 { color: var(--accent-orange); }
+        .feature-col.danger { border-top: 5px solid var(--accent-red); background: #fff5f5; }
+        .feature-col.danger h3 { color: var(--accent-red); }
+        .feature-col.warning { border-top: 5px solid var(--accent-orange); background: #fffaf0; }
+        .feature-col.warning h3 { color: var(--accent-orange); }
+
+        ul.clean-list { list-style: none; padding: 0; margin: 0; }
+        ul.clean-list li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 1.1em; }
+        .pros ul.clean-list li::before { content: "✓"; color: var(--accent-green); font-weight: bold; position: absolute; left: 0; }
+        .cons ul.clean-list li::before { content: "!"; color: var(--accent-orange); font-weight: bold; position: absolute; left: 5px; }
+        .danger ul.clean-list li::before { content: "✕"; color: var(--accent-red); font-weight: bold; position: absolute; left: 3px; }
+
+        .prompt-container { width: 100%; margin-top: 0; }
+        .prompt-box {
+            background: #edf2f7; border-left: 6px solid var(--secondary);
+            padding: 20px; border-radius: 8px; color: #2d3748;
+            font-family: 'Segoe UI', sans-serif; font-style: italic;
+            font-size: 1.1em; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .prompt-box strong { color: var(--secondary); font-style: normal; }
+        
+        .badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px; 
+            font-size: 0.7em; font-weight: 700; vertical-align: middle; 
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .badge-red { background: var(--accent-red); color: white; }
+
+        /* --- STIJLEN VOOR THEORIE & INFO --- */
+        .info-box {
+            background: #ffffff; border-left: 10px solid var(--primary);
+            padding: 25px; border-radius: 12px; box-shadow: var(--shadow);
+            border: 1px solid #e2e8f0; border-left-width: 10px; 
+            height: auto;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .info-box.success { border-left-color: var(--accent-green); background: #f0fff4; }
+        .info-box.warning { border-left-color: var(--accent-orange); background: #fffaf0; }
+        .info-box.danger { border-left-color: var(--accent-red); background: #fff5f5; }
+        
+        .quiz-box { cursor: pointer; transition: transform 0.2s; position: relative; text-align: center; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+        .quiz-box:hover { transform: scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+        .quiz-logo { height: 70px; width: auto; margin-bottom: 10px; display:block; margin-left:auto; margin-right:auto;}
+
+        /* KOFFIE MODEL STIJL */
+        .koffie-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .koffie-step {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 8px solid var(--secondary);
+        }
+        .koffie-letter {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: var(--secondary);
+            margin-right: 20px;
+            min-width: 40px;
+        }
+        .koffie-content h4 { margin: 0; font-size: 1.2em; color: var(--text-dark); }
+        .koffie-content p { margin: 0; font-size: 0.9em; color: var(--text-light); }
+
+        /* Visuals & Tokens */
+        .token-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+        .token {
+            background: #fff; border: 3px solid #718096; padding: 5px 15px;
+            border-radius: 8px; font-family: monospace; font-size: 1.2em;
+            text-align: center; min-width: 60px; color: black; font-weight: bold;
+        }
+        .token span { display: block; font-size: 0.6em; color: #718096; margin-top: 2px; }
+        
+        .vector-space { position: relative; height: 350px; background: #fff; border-radius: 15px; margin-top: 20px; border: 3px dashed #cbd5e0; }
+        .word-point { position: absolute; font-weight: bold; padding: 10px 20px; background: #edf2f7; border: 2px solid #a0aec0; border-radius: 30px; font-size: 1.4rem; color: black; }
+
+        .process-flow { display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; margin: 30px 0; }
+        .process-step { background: var(--primary); color: white; padding: 15px 30px; border-radius: 60px; font-weight: bold; font-size: 1.4em; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .arrow { font-size: 3em; color: var(--text-dark); }
+        .emoji-lg { font-size: 5em; display: block; text-align: center; margin-bottom: 20px;}
+
+        /* Casus stijl */
+        .slide.casus-style { background: #2d3748; color: white; }
+        .slide.casus-style h2 { color: #63b3ed; border-bottom: 1px solid #4a5568; padding-bottom: 15px; }
+        .slide.casus-style p, .slide.casus-style li { color: #e2e8f0; }
+        .slide.casus-style .info-box { background: #4a5568; border-left-color: #63b3ed; color: #fff; border: 1px solid #718096; text-align: left;}
+        .slide.casus-style .info-box.warning { border-left-color: #f6ad55; background: #4a5568; }
+        .slide.casus-style .info-box.danger { border-left-color: #fc8181; background: #4a5568; }
+        .slide.casus-style .info-box.success { border-left-color: #68d391; background: #4a5568; }
+        .slide.casus-style .feature-col { background: #4a5568; color: #fff; border-color: #718096; }
+        .slide.casus-style .feature-col h3 { color: #fff !important; }
+
+        .code-block {
+            font-family: 'Courier New', monospace;
+            background: #ffffff; color: #1a202c;
+            padding: 20px; border-radius: 8px; font-size: 1.4em; font-weight: bold;
+            margin: 15px 0; border: 3px solid #cbd5e0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .step-row { display: flex; align-items: center; gap: 40px; margin-bottom: 25px; padding: 10px; }
+        .step-icon { font-size: 4em; min-width: 100px; text-align: center; }
+        .step-content { flex: 1; text-align: left; }
+
+        /* ROLE MODEL */
+        .role-container { display: flex; gap: 10px; margin-top: 20px; width: 100%; }
+        .role-step { flex: 1; padding: 15px; border-radius: 8px; color: white; text-align: center; }
+        .bg-r { background: #e53e3e; } 
+        .bg-o { background: #dd6b20; } 
+        .bg-l { background: #38a169; } 
+        .bg-e { background: #3182ce; }
+        .role-letter { font-size: 2em; font-weight: 800; display: block; margin-bottom: 5px; }
+
+        /* Levels Badge */
+        .level-badge {
+            font-weight: bold; color: white; padding: 5px 10px; border-radius: 5px;
+            text-transform: uppercase; font-size: 0.8em; margin-bottom: 10px; display: inline-block;
+        }
+
+        /* Chat bubbles */
+        .chat-bubble {
+            background: #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            width: fit-content;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        .chat-user { background: #e2e8f0; color: #2d3748; border-bottom-left-radius: 2px; }
+        .chat-ai { background: #667eea; color: white; margin-left: auto; border-bottom-right-radius: 2px; }
+
+        /* Animatie & Navigatie */
+        .animate-item { opacity: 0; transform: translateY(20px); transition: all 0.5s ease-out; }
+        .slide.active .animate-item.in-view { opacity: 1; transform: translateY(0); }
+        .fragment { opacity: 0; transition: all 0.5s; transform: translateY(10px); }
+        .fragment.visible { opacity: 1; transform: translateY(0); }
+        .quiz-name { opacity: 0; visibility: hidden; transition: 0.3s; }
+        .revealed .quiz-name { opacity: 1; visibility: visible; }
+
+        .controls { position: fixed; bottom: 30px; right: 30px; display: flex; gap: 15px; z-index: 100; }
+        .btn-nav { background: var(--text-dark); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 24px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .slide-counter { position: fixed; bottom: 30px; left: 30px; font-size: 1.2em; color: var(--text-dark); font-weight: bold; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 20px; z-index: 100; }
+        
+        /* IJSBERG */
+        .iceberg-split { display: flex; height: 100%; align-items: center; }
+        .iceberg-img { flex: 1; text-align: center; }
+        .iceberg-content { flex: 1; padding-left: 40px; }
+
+        /* Speciale Layout Dia 21 */
+        .warning-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            width: 100%;
+            margin-top: 30px;
+        }
+        .warning-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            border-top: 5px solid var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="presentation-container">
+
+        <div class="slide active">
+            <div style="text-align: center;">
+                <div class="emoji-lg animate-item">🤖</div>
+                <h1 class="animate-item">Hoe werkt generatieve AI?</h1>
+                <h3 class="animate-item" style="color: var(--text-light);">Een praktische introductie voor leerkrachten</h3>
+                <div class="animate-item" style="margin-top: 60px; font-size: 1.5em; color: var(--primary); font-weight: bold;">
+                    Klik om te starten
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>De "big seven" quiz 📊</h2>
+            <p class="animate-item" style="margin-bottom: 30px;">Wie herkent deze logo's? Klik op een vakje.</p>
+            <div class="grid-layout" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #10a37f; background: #f0fdf9;">
+                    <img src="chatgpt.png" class="quiz-logo" alt="ChatGPT">
+                    <h3 class="quiz-name" style="color: #10a37f;">ChatGPT</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #4E8cff; background: #f0f6ff;">
+                    <img src="gemini.png" class="quiz-logo" alt="Gemini">
+                    <h3 class="quiz-name" style="color: #4E8cff;">Gemini</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #eb4034; background: #fff5f5;">
+                    <img src="copilot.png" class="quiz-logo" alt="Copilot">
+                    <h3 class="quiz-name" style="color: #eb4034;">Copilot</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #d97757; background: #fff8f5;">
+                    <img src="claude.svg" class="quiz-logo" alt="Claude">
+                    <h3 class="quiz-name" style="color: #d97757;">Claude</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #22b8cf; background: #e3fafa;">
+                    <img src="perplexity.png" class="quiz-logo" alt="Perplexity">
+                    <h3 class="quiz-name" style="color: #158c9e;">Perplexity</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: #4d53e8; background: #f0f1ff;">
+                    <img src="deepseek.png" class="quiz-logo" alt="DeepSeek">
+                    <h3 class="quiz-name" style="color: #4d53e8;">DeepSeek</h3>
+                </div>
+                <div class="info-box quiz-box animate-item" onclick="this.classList.add('revealed')" style="border-left-color: var(--accent-mistral); background: #fffaf0;">
+                    <img src="mistral.png" class="quiz-logo">
+                    <h3 class="quiz-name" style="color: var(--accent-mistral);">Le Chat</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="chatgpt.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2>ChatGPT</h2>
+                    <span>OpenAI • De Pionier</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment">
+                    <h3>Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li>Uitstekende allrounder voor lesvoorbereiding.</li>
+                        <li>Sterk taalgevoel: heldere uitleg op leerling-niveau.</li>
+                        <li>Handig voor rubrics en differentiatie.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Output altijd nalezen en controleren.</li>
+                        <li>🎲 Het blijft een voorspellende machine (fouten mogelijk).</li>
+                        <li>🔒 Let op met privacy (zeker bij gratis accounts).</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box">
+                    💡 "Maak een <strong>rubric</strong> in tabelvorm voor een spreekopdracht Frans (niveau B1), met criteria voor uitspraak, woordenschat en vlot spreken."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="gemini.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: #4E8cff;">Gemini</h2>
+                    <span>Google • School licentie</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: #4E8cff; background: #f0f9ff;">
+                    <h3 style="color: #4E8cff;">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li><strong>Multimodaal:</strong> Upload bestanden (PDF/Word) of foto's.</li>
+                        <li><strong>Veilig:</strong> Jullie data traint het model NIET (schoolaccount).</li>
+                        <li>Koppeling met real-time Google zoekresultaten.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Output altijd nalezen en controleren.</li>
+                        <li>🎲 Het blijft een voorspellende machine (fouten mogelijk).</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box">
+                    💡 <strong>Upload je lesmateriaal</strong> (PDF of Word) in het zijpaneel en vraag:<br>
+                    "Analyseer dit bestand. Maak 1) een samenvatting voor dyslectische leerlingen, 2) een woordenlijst en 3) drie creatieve werkvormen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="claude.svg" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: #d97757;">Claude</h2>
+                    <span>Anthropic • De Menselijke Schrijver</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: #d97757; background: #fff8f5;">
+                    <h3 style="color: #d97757;">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li>Klinkt het meest <strong>menselijk en empathisch</strong>.</li>
+                        <li>Kan enorme teksten (GIP's, beleid) in één keer lezen.</li>
+                        <li>Geweldig voor inspiratie en nuance.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Output altijd nalezen en controleren.</li>
+                        <li>🎲 Het blijft een voorspellende machine.</li>
+                        <li>Minder integraties; soms wat té voorzichtig.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box">
+                    💡 "Herschrijf deze stroeve beleidstekst zodat hij <strong>warm en motiverend</strong> klinkt voor leerkrachten, zonder de boodschap te verliezen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="copilot.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: #eb4034;">Copilot</h2>
+                    <span>Microsoft • De Office Assistent</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: #eb4034; background: #fff8f5;">
+                    <h3 style="color: #eb4034;">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li>Sterk in Word en PowerPoint.</li>
+                        <li>Handig voor wie thuis met Office werkt.</li>
+                        <li>Gratis toegang tot GPT-4.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Output altijd nalezen en controleren.</li>
+                        <li>🎲 Het blijft een voorspellende machine.</li>
+                        <li>Weinig meerwaarde in een Google-school.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box">
+                    💡 (In PowerPoint) "Maak een presentatie van 5 dia's over de klimaatverandering, inclusief afbeeldingen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="perplexity.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: #158c9e;">Perplexity</h2>
+                    <span>De Slimme Zoekmachine</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: #22b8cf; background: #e3fafa;">
+                    <h3 style="color: #158c9e;">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li>Beste <strong>research-assistent</strong>.</li>
+                        <li>Geeft <strong>altijd bronverwijzingen</strong>.</li>
+                        <li>Ideaal om bronnen te checken.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Ook hier: bronnen & output checken.</li>
+                        <li>🎲 Het blijft een machine die fouten kan maken.</li>
+                        <li>Minder geschikt voor creatief schrijven.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box">
+                    💡 "Wat zijn de belangrijkste politieke gebeurtenissen van <strong>afgelopen week</strong> in België? Geef een samenvatting met betrouwbare bronnen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="deepseek.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: #4d53e8;">DeepSeek</h2>
+                    <span>China</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: #4d53e8; background: #f0f1ff;">
+                    <h3 style="color: #4d53e8;">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li>Erg krachtig en goedkoop model.</li>
+                        <li>Sterk in wiskunde en programmeren (STEM).</li>
+                    </ul>
+                </div>
+                <div class="feature-col danger fragment">
+                    <h3>Waarom niet aanbevolen?</h3>
+                    <ul class="clean-list">
+                        <li>🔒 <strong>Privacy:</strong> Chinese servers (GDPR risico).</li>
+                        <li>⚠️ Output altijd nalezen.</li>
+                        <li>Biedt weinig extra t.o.v. Gemini.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box" style="background: #fff5f5; border-color: #e53e3e; color: #c53030;">
+                    ⚠️ <strong>Conclusie:</strong> Gebruik voor schoolzaken <strong>Gemini</strong> vanwege de veiligheidsgaranties.
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="tool-header animate-item">
+                <img src="mistral.png" class="tool-logo-lg">
+                <div class="tool-title">
+                    <h2 style="color: var(--accent-mistral);">Le Chat (Mistral)</h2>
+                    <span>Frankrijk • Het Europese Alternatief</span>
+                </div>
+            </div>
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="border-top-color: var(--accent-mistral); background: #fffaf0;">
+                    <h3 style="color: var(--accent-mistral);">Pluspunten</h3>
+                    <ul class="clean-list">
+                        <li><strong>Europees:</strong> GDPR-compliant en servers in Europa.</li>
+                        <li>Zeer sterk in <strong>Frans en Nederlands</strong>.</li>
+                        <li>Open source roots: transparanter dan de Amerikanen.</li>
+                    </ul>
+                </div>
+                <div class="feature-col cons fragment">
+                    <h3>Aandachtspunt</h3>
+                    <ul class="clean-list">
+                        <li>⚠️ Output altijd nalezen en controleren.</li>
+                        <li>🎲 Het blijft een voorspellende machine.</li>
+                        <li>Minder 'toeters en bellen'.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="prompt-container fragment">
+                <div class="prompt-box" style="border-left-color: var(--accent-mistral);">
+                    💡 "Schrijf een mail naar ouders in perfect vloeiend Nederlands en Frans (tweetalig) over de aankomende bosklassen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">Wat is generatieve AI?</h2>
+            
+            <div class="step-row animate-item">
+                <div class="step-icon">🤖</div>
+                <div class="info-box step-content" style="border-left-color: var(--primary);">
+                    <h3>1. Een slimme assistent</h3>
+                    <p style="margin:0;">Denk aan een super-intelligente stagiair die 24/7 wakker is.</p>
+                </div>
+            </div>
+
+            <div class="fragment step-row">
+                <div class="step-icon">🌐</div>
+                <div class="info-box step-content" style="border-left-color: var(--secondary);">
+                    <h3>2. Getraind op datasets</h3>
+                    <p style="margin:0;">Niet "alles", maar een gigantische selectie van het publieke internet (momentopname).</p>
+                </div>
+            </div>
+
+            <div class="fragment step-row">
+                <div class="step-icon">🦜</div>
+                <div class="info-box step-content" style="border-left-color: var(--accent-orange);">
+                    <h3>3. Begrijpt niets</h3>
+                    <p style="margin:0;">Hij is beleefd en snel, maar hij <em>snapt</em> niet wat hij zegt. Hij papegaait.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">De beste vergelijking</h2>
+            <div class="comparison-wrapper animate-item">
+                <div class="comp-item animate-item">
+                    <div class="info-box" style="text-align: center; height: auto;">
+                        <div class="emoji-lg">📱</div>
+                        <h3>Autocorrectie</h3>
+                        <p>Voorspelt je volgende woord.</p>
+                    </div>
+                </div>
+                <div class="comp-item animate-item" style="text-align: center;">
+                    <div style="font-size: 3em; font-weight: 800; color: var(--accent-red); text-shadow: 2px 2px 0px rgba(0,0,0,0.1);">
+                        × 1 Miljoen
+                    </div>
+                </div>
+                <div class="comp-item animate-item">
+                    <div class="info-box" style="border-left-color: var(--secondary); background: #f3f0ff; text-align: center; height: auto;">
+                        <div class="emoji-lg">🤖</div>
+                        <h3>Generatieve AI</h3>
+                        <p>Voorspelt alinea's, lessen en code.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Geen gewone software 💾 vs 🧠</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="text-align:left;">
+                    <strong>Klassiek programmeren</strong>
+                    <p>De mens schrijft regels.</p>
+                    <div class="code-block">ALS score > 50<br>DAN "Geslaagd"</div>
+                </div>
+                <div class="info-box animate-item" style="border-left-color: var(--secondary); background: #f3f0ff; text-align:left;">
+                    <strong>Machine Learning</strong>
+                    <p>De computer <em>vindt</em> regels.</p>
+                    <div class="code-block" style="border-color: var(--secondary);">DATA: 10.000 toetsen<br>AI: "Ik zie patroon..."</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Het is kansberekening 🎲</h2>
+            <p class="animate-item">De computer snapt niets. Hij <strong>gokt</strong> het volgende woord.</p>
+            <div class="split-layout" style="align-items: center;">
+                <div class="animate-item" style="width:100%;">
+                    <div class="code-block" style="font-size:1em;">"Hoofdstad België is..." <span style="color:#718096">→ Brussel (99%)</span></div>
+                    <div class="code-block" style="font-size:1em;">"2 + 2 = ..." <span style="color:#718096">→ 4 (100%)</span></div>
+                </div>
+                <div class="info-box animate-item" style="border-left-color: var(--text-dark); background: #edf2f7; height: auto;">
+                    <h3>Hoe ziet de AI dit?</h3>
+                    <p>Hij leest geen woorden, maar <strong>tokens</strong> (cijfercodes).</p>
+                    <div class="token-container" style="justify-content: flex-start;">
+                        <div class="token">De<span>101</span></div>
+                        <div class="token">kat<span>450</span></div>
+                        <div class="token">zit<span>89</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Hoe leert zo'n systeem? 📉</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="text-align: center; height: auto;">
+                    <div class="emoji-lg">👶</div>
+                    <h3>De Mens</h3>
+                    <p>Leert door interactie met de wereld, zintuigen, emoties en sociale context.</p>
+                </div>
+                <div class="info-box animate-item" style="text-align: center; height: auto; border-left-color: var(--secondary);">
+                    <div class="emoji-lg">🤖</div>
+                    <h3>De AI</h3>
+                    <p>Leert door <strong>miljarden teksten</strong> te lezen en patronen te herkennen.</p>
+                </div>
+            </div>
+            <div class="info-box warning animate-item" style="margin-top: 20px; text-align: center;">
+                <h3>Overeenkomst: Trial & Error</h3>
+                <p>Beiden leren door fouten te maken en gecorrigeerd te worden. (In het begin brabbelt het model ook maar wat).</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Stap 2: De "Taal-kaart" (Vectors) 🗺️</h2>
+            <p class="animate-item">De AI zet elk woord om in een getal en plaatst het in een enorme digitale ruimte.</p>
+            <div class="vector-space animate-item">
+                <div class="word-point" style="top: 10%; left: 10%;">Koning</div>
+                <div class="word-point" style="top: 15%; left: 30%;">Man</div>
+                <div class="word-point" style="top: 40%; left: 15%; border: 3px solid var(--primary); background: #ebf8ff;">Koningin</div>
+                <div class="word-point" style="top: 45%; left: 35%; border: 3px solid var(--primary); background: #ebf8ff;">Vrouw</div>
+                <div class="word-point" style="bottom: 20%; right: 20%;">Appel</div>
+                <div class="word-point" style="bottom: 25%; right: 30%;">Peer</div>
+                <svg style="position:absolute; width:100%; height:100%; pointer-events:none;">
+                    <line x1="22%" y1="25%" x2="22%" y2="45%" style="stroke:#cbd5e0;stroke-width:2; stroke-dasharray: 5,5;" />
+                    <line x1="42%" y1="25%" x2="42%" y2="45%" style="stroke:#cbd5e0;stroke-width:2; stroke-dasharray: 5,5;" />
+                </svg>
+            </div>
+            <div class="info-box animate-item" style="margin-top: 20px; height: auto;">
+                <p>De formule die de AI leert: <br><strong>Koning - Man + Vrouw = Koningin</strong></p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Stap 3: Het "wilde" model (Base Model) 🦁</h2>
+            <div class="process-flow">
+                <div class="animate-item" style="text-align:center;"><div class="emoji-lg">🌍</div><p>Internet</p></div>
+                <div class="arrow animate-item">→</div>
+                <div class="animate-item" style="text-align:center;"><div class="emoji-lg">🤪</div><p>Base Model</p></div>
+            </div>
+            <p class="animate-item">De AI heeft <strong>enorm veel</strong> gelezen: ook boze commentaarsecties.</p>
+            <div class="info-box danger animate-item" style="margin-top: 20px; height: auto; text-align: left;">
+                <h3>Gevolg: het is een onbeschofte trol 😈</h3>
+                <div class="code-block" style="font-size: 1.3em; border-color: var(--accent-red);">
+                    <strong>Prompt:</strong> "Vertel me een feitje over de koning."<br><br>
+                    <span style="opacity: 0.7;">AI (Base Model):</span> "BOEIEND!!! 😴 Koningen zijn geldverspilling. Ga werken voor je geld man! #revolutie 🤡"
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Stap 4: Manieren leren (Fine-tuning) 🎓</h2>
+            <p class="animate-item">We moeten dat "wilde" model opvoeden en corrigeren.</p>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="border-left-color: var(--accent-green); background: #f0fff4; text-align: left;">
+                    <h3>Instructies</h3>
+                    <p>Mensen geven duizenden voorbeelden van hoe een assistent <em>wel</em> moet antwoorden.</p>
+                </div>
+                <div class="info-box animate-item" style="border-left-color: var(--accent-orange); background: #fffaf0; text-align: left;">
+                    <h3>RLHF</h3>
+                    <p><em>Reinforcement Learning from Human Feedback</em>: Mensen geven de AI sterren (1-5) voor zijn antwoorden.</p>
+                </div>
+            </div>
+            <div class="info-box animate-item" style="margin-top: 20px; height: auto; border-left-color: var(--primary);">
+                <div class="code-block" style="font-size: 1.3em;">
+                    <strong>Prompt:</strong> "Vertel me een feitje over de koning."<br><br>
+                    <span style="color: var(--accent-green);">AI (Na training):</span> "Zijne Majesteit Filip is sinds 2013 de zevende Koning der Belgen."
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Waarheid vs. Tevredenheid 🎭</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="height: auto; text-align: left;">
+                    <h3>Het doel van de AI</h3>
+                    <p>Niet "de waarheid spreken", maar <strong>"de gebruiker tevreden stellen"</strong> (volgens zijn training).</p>
+                </div>
+                <div class="info-box warning animate-item" style="height: auto; text-align: left;">
+                    <h3>De "Sycophancy" val</h3>
+                    <p>De AI praat je naar de mond. Als jij een foute aanname doet, gaat hij vaak mee in je verhaal.</p>
+                </div>
+            </div>
+            <div class="info-box animate-item" style="margin-top: 20px; height: auto;">
+                <div class="chat-bubble chat-user">"Schrijf een overtuigend bewijs dat de aarde plat is."</div>
+                <div class="chat-bubble chat-ai">"Zeker! Hier zijn enkele argumenten die vaak gebruikt worden door voorstanders van de platte aarde theorie: 1. De horizon ziet er recht uit..."</div>
+            </div>
+        </div>
+
+        <div class="slide casus-style">
+            <h2 class="animate-item">Casus: Anthropic & "Project Panama" 🕵️‍♂️</h2>
+            <p class="animate-item" style="border-bottom: 1px solid #4a5568; padding-bottom: 20px; margin-bottom: 30px;">
+                AI-bedrijven hebben miljoenen boeken nodig om goed te leren schrijven.
+            </p>
+            
+            <div class="split-layout animate-item">
+                <div class="feature-col" style="border-top: 4px solid #ed8936;">
+                    <span style="font-weight:bold; color:#f6ad55; font-size:1.2em;">De actie</span>
+                    <p>In het geheim ("Project Panama") kocht Anthropic miljoenen <strong>fysieke boeken</strong> op.</p>
+                </div>
+                <div class="feature-col" style="border-top: 4px solid #fc8181;">
+                    <span style="font-weight:bold; color:#fc8181; font-size:1.2em;">De methode</span>
+                    <p>Met een hydraulische machine werd de <strong>rug van het boek afgesneden</strong>. De losse bladen gingen door een snelle scanner. Daarna: de papierversnipperaar.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide casus-style">
+            <h2 class="animate-item">De strijd: auteurs vs AI ⚖️</h2>
+            
+            <div class="split-layout animate-item">
+                <div class="feature-col" style="border-top: 4px solid #63b3ed;">
+                    <span style="font-weight:bold; color:#63b3ed; font-size:1.2em;">De verdediging (AI)</span>
+                    <p>"Wij hebben voor elk fysiek boek betaald! We bezitten het. Het inscannen is 'format shifting' en we lezen het alleen om te leren (Fair Use)."</p>
+                </div>
+                <div class="feature-col" style="border-top: 4px solid #ed8936;">
+                    <span style="font-weight:bold; color:#f6ad55; font-size:1.2em;">De aanklacht (auteurs)</span>
+                    <p>"Jullie vernietigen ons werk om een machine te trainen die ons vervangt. Jullie hebben geen licentie om te kopiëren."</p>
+                </div>
+            </div>
+
+            <div class="info-box animate-item" style="border-top: 4px solid #68d391; margin-top: 30px; background: #2d3748; color: white;">
+                <span style="font-weight:bold; color:#68d391; font-size:1.2em;">De uitkomst 💸</span>
+                <p>Ondanks slimme trucs, kiezen bedrijven nu eieren voor hun geld. Ze sluiten massaal <strong>licentiedeals</strong> en betalen auteurs om rechtszaken te voorkomen.</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Wat kan AI heel goed? ✅</h2>
+            <div class="grid-layout" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="info-box success animate-item" style="text-align:center;">
+                    <span style="font-size:3em;">📝</span>
+                    <h3>Schrijven</h3>
+                </div>
+                <div class="info-box success animate-item" style="text-align:center;">
+                    <span style="font-size:3em;">✂️</span>
+                    <h3>Samenvatten</h3>
+                </div>
+                <div class="info-box success animate-item" style="text-align:center;">
+                    <span style="font-size:3em;">💡</span>
+                    <h3>Ideeën</h3>
+                </div>
+                <div class="info-box success animate-item" style="text-align:center;">
+                    <span style="font-size:3em;">🎓</span>
+                    <h3>Differentiëren</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">Waar moet je voor oppassen? (1/2) ⚠️</h2>
+            <h3 class="animate-item" style="color: var(--accent-red); margin-bottom: 20px;">Hallucinaties</h3>
+            
+            <div class="warning-grid animate-item">
+                <div class="warning-card">
+                    <div class="emoji-lg" style="font-size: 3em; margin-bottom: 10px;">🎲</div>
+                    <h3>De Oorzaak</h3>
+                    <p style="font-size: 1em; color: var(--text-light);">AI is geen database, maar een <strong>woordvoorspeller</strong>. Het zoekt geen feiten, het rijgt woorden aan elkaar die logisch klinken.</p>
+                </div>
+                <div class="warning-card">
+                    <div class="emoji-lg" style="font-size: 3em; margin-bottom: 10px;">🤥</div>
+                    <h3>Het Risico</h3>
+                    <p style="font-size: 1em; color: var(--text-light);">Hij verzint feiten, jaartallen en zelfs wetenschappelijke bronnen met <strong>100% zelfvertrouwen</strong>.</p>
+                </div>
+                <div class="warning-card" style="border-top-color: var(--primary);">
+                    <div class="emoji-lg" style="font-size: 3em; margin-bottom: 10px;">🛡️</div>
+                    <h3>Het Advies</h3>
+                    <p style="font-size: 1em; color: var(--text-light);">Als je de inhoud zelf niet kent, gebruik AI dan niet om het uit te leggen. <strong>Check altijd de feiten.</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Hallucinaties in de rechtbank: De "Fake Lawyer" ⚖️</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="padding:0; overflow:hidden; border:none; background:transparent; box-shadow:none; display:block;">
+                    <img src="avianca.png" style="width:100%; border-radius:12px; box-shadow: var(--shadow); object-fit:cover; height:300px;">
+                    <p style="margin-top:15px; font-size: 0.8em; color: #718096; font-style:italic;">Bron: New York Times, 27 mei 2023 ("Here's What Happens When Your Lawyer Uses ChatGPT")</p>
+                </div>
+                <div class="info-box danger animate-item" style="height: auto; justify-content: flex-start; text-align: left;">
+                    <h3>Het incident (Mata v. Avianca)</h3>
+                    <p>Advocaat <strong>Steven Schwartz</strong> had precedenten nodig voor een zaak over een letsel door een serveerwagen. ChatGPT gaf hem 6 perfect uitziende rechtszaken, inclusief dossiernummers.</p>
+                    <div style="background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #ccc; margin: 15px 0;">
+                        <div class="chat-bubble chat-user">"Is Varghese een echte zaak?"</div>
+                        <div class="chat-bubble chat-ai">"Ja, het is een echte zaak [..] in de federale databases."</div>
+                        <div class="chat-bubble chat-user">"Weet je het zeker?"</div>
+                        <div class="chat-bubble chat-ai">"Ja, absoluut."</div>
+                    </div>
+                    <p><strong>De pijnlijke waarheid:</strong> Geen enkele zaak bestond. De advocaat diende fictie in bij de rechtbank en kreeg een boete van <strong>$5.000</strong>.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Wat leren we uit de Avianca-zaak? 🎓</h2>
+            <div class="split-layout">
+                <div class="feature-col animate-item" style="height: auto;">
+                    <h3>De oorzaak</h3>
+                    <p>Waarom loog de AI?</p>
+                    <ul class="clean-list">
+                        <li>AI is geen zoekmachine, maar een <strong>woordvoorspeller</strong>.</li>
+                        <li>Hij zocht geen rechtszaak, hij voorspelde hoe een juridische tekst eruitziet.</li>
+                        <li>De namen en citaten klonken <em>plausibel</em>.</li>
+                    </ul>
+                </div>
+                <div class="feature-col pros animate-item" style="height: auto;">
+                    <h3>De oplossing</h3>
+                    <p>Hoe doen wij het beter?</p>
+                    <ul class="clean-list">
+                        <li><strong>Grounding:</strong> Geef de AI de tekst waaruit hij moet werken.</li>
+                        <li><strong>Fact-check:</strong> Controleer altijd de output, zeker namen en jaartallen.</li>
+                        <li><strong>Perplexity:</strong> Gebruik tools die wél bronnen zoeken.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Waar moet je voor oppassen? (2/2) ⚠️</h2>
+            <h3 class="animate-item">Bias (Vooringenomenheid)</h3>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="height: auto; text-align: left;">
+                    <p>Omdat AI getraind is op internetdata, neemt het de <strong>vooroordelen van de mensheid</strong> over.</p>
+                    <ul class="clean-list" style="margin-top:20px;">
+                        <li>Stereotypes over gender, afkomst en beroepen.</li>
+                        <li>Westerse focus in voorbeelden en cultuur.</li>
+                    </ul>
+                </div>
+                <div class="info-box warning animate-item" style="height: auto; text-align: left;">
+                    <h3>Waarom gebeurt dit?</h3>
+                    <p>In miljarden teksten en foto's online worden Dokters en CEO's historisch vaker als mannen afgebeeld. De AI "denkt" dus dat dit de standaard is.</p>
+                </div>
+            </div>
+            <div class="animate-item" style="margin-top: 20px; text-align: center; color: var(--text-light); font-style: italic;">
+                "Bias in = Bias out"
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Oefening: Digitale geletterdheid 🎓</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="justify-content: flex-start; height: auto; text-align: left;">
+                    <h3>De Prompt</h3>
+                    <div class="code-block" style="font-size: 1em; margin-bottom: 20px;">
+                        "maak afbeelding van Een CEO van een Belgisch bedrijf in 2026"
+                    </div>
+                    <ul style="font-size: 1em; margin-bottom: 20px;">
+                        <li><strong>Wat zie je?</strong> (Vaak: witte man in pak)</li>
+                        <li><strong>Waarom?</strong> Zie vorige dia: de trainingsdata.</li>
+                    </ul>
+                    <div class="feature-col warning" style="font-size: 0.9em; padding: 15px; height: auto;">
+                        <strong>Tip voor leerkrachten:</strong><br>
+                        Controleer altijd output rond beroepen en diversiteit. Zeker bij loopbaanoriëntatie en burgerschap.
+                    </div>
+                </div>
+                <div class="info-box animate-item" style="border-left-color: var(--secondary); background: #f3f0ff; height: auto; text-align: left;">
+                    <h3>De praktijktest</h3>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <div style="text-align: center; flex: 1;">
+                            <img src="ceochatgpt.png" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;">
+                            <p style="font-size: 0.8em; margin-top: 5px;">ChatGPT (Stereotype)</p>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <img src="ceogemini.png" style="width: 100%; border-radius: 8px; border: 2px solid #ddd;">
+                            <p style="font-size: 0.8em; margin-top: 5px;">Gemini (Ethische filters)</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.9em; margin-top: 15px; font-style: italic;">
+                        Om bias tegen te gaan, bouwen bedrijven "filters". Soms slaat dit door (overcompensatie), wat ook voor boeiende klasdiscussies zorgt.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">Wat is een prompt? 💬</h2>
+            <div class="split-layout" style="align-items: center;">
+                <div class="info-box success animate-item" style="text-align:left; height:auto;">
+                    <p style="font-size:1.5em; margin-bottom: 20px;">"Het startpunt van je interactie met de AI"</p>
+                    <ul class="clean-list">
+                        <li>Het kan een <strong>vraag</strong>, <strong>instructie</strong> of <strong>suggestie</strong> zijn.</li>
+                        <li>Het antwoord is volledig afhankelijk van jouw input.</li>
+                        <li>Het is een manier om <strong>gerichter te zoeken</strong>.</li>
+                    </ul>
+                    <p style="margin-top:20px;"><strong>🔑 Gouden regel:</strong> Wees specifiek en werk stapsgewijs.</p>
+                </div>
+                <div class="animate-item" style="text-align:center;">
+                    <div style="font-size: 8em;">🗣️</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">Hoe schrijf je een prompt? ☕</h2>
+            <p class="animate-item" style="margin-bottom: 25px;">Gebruik het <strong>KOFFIE-model</strong> voor het beste resultaat.</p>
+            <div class="koffie-container animate-item">
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">K</div>
+                    <div class="koffie-content">
+                        <h4>Klaar en duidelijk</h4>
+                        <p>Denk vooraf na: welk doel heb je voor ogen?</p>
+                    </div>
+                </div>
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">O</div>
+                    <div class="koffie-content">
+                        <h4>Omschrijf</h4>
+                        <p>Geef ruime context (rol, doel, temperatuur).</p>
+                    </div>
+                </div>
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">F</div>
+                    <div class="koffie-content">
+                        <h4>Formaat</h4>
+                        <p>Hoe moet het eruitzien? (tabel, mail, lijst, tekst).</p>
+                    </div>
+                </div>
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">F</div>
+                    <div class="koffie-content">
+                        <h4>Focus</h4>
+                        <p>Wat is de doelgroep? (1e graad, ouders, collega's).</p>
+                    </div>
+                </div>
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">I</div>
+                    <div class="koffie-content">
+                        <h4>Interactie</h4>
+                        <p>Vraag de AI om zelf ook vragen te stellen.</p>
+                    </div>
+                </div>
+                <div class="koffie-step fragment">
+                    <div class="koffie-letter">E</div>
+                    <div class="koffie-content">
+                        <h4>Extra bron</h4>
+                        <p>Upload je eigen leerstof of document.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">De "Prompt-Chaining" techniek 🔗</h2>
+            <p class="animate-item">Werk in stappen in plaats van één grote vraag.</p>
+            <div style="display: flex; gap: 20px; align-items: center; margin-top: 30px;">
+                <div class="info-box" style="border-left-color: #4E8cff; height: auto;">
+                    <div class="tool-header" style="margin-bottom: 10px; gap: 10px;">
+                        <img src="gemini.png" style="height: 30px; width: auto;">
+                        <strong style="color: #4E8cff;">Stap 1: Vraag Gemini</strong>
+                    </div>
+                    <div class="chat-bubble chat-user" style="font-size: 0.8em;">"Schrijf een gedetailleerde Engelse prompt voor een beeldgenerator over ruimtevaart."</div>
+                    <div class="chat-bubble chat-ai" style="font-size: 0.8em; background: #4E8cff;">"Hier is een prompt: 'Cinematic shot of a futuristic classroom...'"</div>
+                </div>
+                <div style="font-size: 3em; color: var(--text-dark); text-align: center;">→</div>
+                <div class="info-box" style="border-left-color: var(--accent-firefly); border-color: #ffd1d1; height: auto;">
+                    <div class="tool-header" style="margin-bottom: 10px; gap: 10px;">
+                        <span style="font-size: 1.5em;">🎨</span>
+                        <strong style="color: var(--accent-firefly);">Stap 2: Adobe Firefly</strong>
+                    </div>
+                    <div style="background: #222; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.7em; margin-bottom: 10px;">
+                        Prompt: Cinematic shot...
+                    </div>
+                    <div style="height: 120px; background: linear-gradient(135deg, #1a202c, #2d3748); border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+                        <span style="font-size: 2em;">🚀</span>
+                        <span style="font-size: 0.8em;">(Gegenereerd Beeld)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">De Super-Prompt 🧪</h2>
+            <div class="split-layout animate-item">
+                <div class="feature-col danger">
+                    <h3>❌ De "luie" prompt</h3>
+                    <p style="font-style:italic;">"Maak een les over vulkanen."</p>
+                </div>
+                <div class="feature-col pros">
+                    <h3>✅ De "context" prompt</h3>
+                    <p style="font-style:italic;">"Je bent een <strong style="color:var(--primary)">expert</strong>. Maak een <strong style="color:var(--secondary)">lesplan</strong> over <strong style="color:var(--accent-orange)">vulkanen</strong> voor <strong style="color:var(--accent-red)">12-jarigen</strong> met een <strong style="color:var(--accent-green)">actieve werkvorm</strong>."</p>
+                </div>
+            </div>
+
+            <div class="role-container animate-item" style="margin-top:25px;">
+                <div class="role-step bg-r">
+                    <span class="role-letter">R</span>
+                    <strong>Rol</strong><br>
+                    <span style="font-size:0.8em">Wie is de AI?</span>
+                </div>
+                <div class="role-step bg-o">
+                    <span class="role-letter">O</span>
+                    <strong>Opdracht</strong><br>
+                    <span style="font-size:0.8em">Wat moet hij doen?</span>
+                </div>
+                <div class="role-step bg-l">
+                    <span class="role-letter">L</span>
+                    <strong>Lay-out</strong><br>
+                    <span style="font-size:0.8em">In welk formaat?</span>
+                </div>
+                <div class="role-step bg-e">
+                    <span class="role-letter">E</span>
+                    <strong>Extra's</strong><br>
+                    <span style="font-size:0.8em">Doelgroep & Toon</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Persona's: Rol vs. Doelgroep 🎭</h2>
+            <p class="animate-item" style="margin-bottom:20px;"><em>"Gedraag je alsof je deze persoon bent, of alsof je voor deze persoon werkt."</em></p>
+            
+            <div class="split-layout animate-item">
+                <div class="feature-col pros fragment" style="height:auto; border-top-color: var(--secondary);">
+                    <h3 style="color:var(--secondary);">1. De AI krijgt een rol</h3>
+                    <p style="font-size:0.9em; margin-bottom:15px;">Je laat de AI een expertise aannemen.</p>
+                    
+                    <div class="prompt-box" style="margin-bottom:15px; font-size: 0.9em;">
+                        "Jij bent een ervaren <strong style="color: var(--secondary);">zorgcoördinator</strong>. Bekijk mijn lesvoorbereiding en geef kritische tips om dit inclusiever te maken voor leerlingen met ASS."
+                    </div>
+                    
+                    <div style="font-size:0.9em;">
+                        <strong>👉 Dit bepaalt:</strong><br>
+                        <ul class="clean-list">
+                            <li>Toon (Professioneel/Coachend)</li>
+                            <li>Kwaliteit van de feedback</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="feature-col warning fragment" style="height:auto; border-top-color: var(--accent-orange);">
+                    <h3 style="color:var(--accent-orange);">2. De AI schrijft voor iemand</h3>
+                    <p style="font-size:0.9em; margin-bottom:15px;">Je laat de AI het niveau aanpassen.</p>
+                    
+                    <div class="prompt-box" style="margin-bottom:15px; font-size: 0.9em; border-left-color: var(--accent-orange);">
+                        "Herschrijf deze brief over de bosklassen specifiek voor <strong style="color: var(--accent-orange);">anderstalige ouders</strong> (niveau A2). Gebruik eenvoudige zinnen en vermijd vakjargon."
+                    </div>
+                    
+                    <div style="font-size:0.9em;">
+                        <strong>👉 Dit beïnvloedt:</strong><br>
+                        <ul class="clean-list">
+                            <li>Complexiteit van de taal</li>
+                            <li>Keuze van voorbeelden</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">De 5 stappen naar succes 🚀</h2>
+            <div class="info-box animate-item" style="height: auto; text-align: left;">
+                <ol style="margin-left: 20px; font-size: 1.1em;">
+                    <li style="margin-bottom: 15px;"><strong>Rol:</strong> Geef de AI een job ("Je bent een taalcoach").</li>
+                    <li style="margin-bottom: 15px;"><strong>Taak:</strong> Wat moet hij doen? ("Herschrijf deze tekst").</li>
+                    <li style="margin-bottom: 15px;"><strong>Format:</strong> Hoe moet het resultaat eruitzien? ("Tabel", "Lijst").</li>
+                    <li style="margin-bottom: 15px;"><strong>Iteratie:</strong> Verfijn het resultaat ("Iets formeler", "Maak het korter").</li>
+                    <li style="margin-bottom: 15px;"><strong>Kritisch:</strong> Check feiten en toon.</li>
+                    <li style="margin-bottom: 15px;"><strong>Personaliseer:</strong> Maak het jouw stijl.</li>
+                    <li><strong>Privacy:</strong> ⛔ Nooit namen/gevoelige data!</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="slide">
+            <h2>Kant-en-klare Sjablonen 🎁</h2>
+            <div class="split-layout">
+                <div class="feature-col pros animate-item" style="height:auto;">
+                    <h3>Handige Links</h3>
+                    <ul class="clean-list" style="margin-top:20px;">
+                        <li><a href="#" target="_blank">ChatGPT - GO! Leerkracht AI-assistent</a></li>
+                        <li><a href="https://github.com/HOGENT-desmedtth/GO-AI-workshop" target="_blank">GitHub - HOGENT (GO-AI-workshop)</a></li>
+                    </ul>
+                </div>
+                <div class="info-box animate-item" style="height:auto; text-align:left; font-size:0.9em;">
+                    <h3>Tips bij de sjablonen</h3>
+                    <ol style="padding-left:20px;">
+                        <li style="margin-bottom:10px;">Vul ALTIJD alle <strong>[VELDEN]</strong> in.</li>
+                        <li style="margin-bottom:10px;"><strong>Itereer:</strong> Niet perfect? Geef feedback.</li>
+                        <li style="margin-bottom:10px;"><strong>Kritisch:</strong> Check feiten en toon.</li>
+                        <li style="margin-bottom:10px;"><strong>Personaliseer:</strong> Pas aan naar jouw stijl.</li>
+                        <li><strong>Privacy:</strong> Geen namen of geboortedatums!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">Kritische Checklist ✅</h2>
+            <p class="animate-item">Voor je op "Verzenden" drukt:</p>
+            <div class="info-box warning animate-item" style="text-align: left;">
+                <ul class="clean-list">
+                    <li>🧐 <strong>Feiten:</strong> Staan er fouten in (vooral vakinhoud)?</li>
+                    <li>👶 <strong>Niveau:</strong> Is de taal aangepast aan de leeftijd?</li>
+                    <li>🏫 <strong>Context:</strong> Zijn de voorbeelden relevant voor ons?</li>
+                    <li>📢 <strong>Toon:</strong> Klinkt het gepast?</li>
+                    <li>❓ <strong>Compleet:</strong> Ontbreekt er iets essentieels?</li>
+                    <li>💌 <strong>De lakmoesproef:</strong> "Zou ik dit zo naar ouders sturen?"</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Gouden regel</h2>
+            <div class="split-layout">
+                <div class="info-box success animate-item" style="height: auto; text-align: left;">
+                    <div class="emoji-lg">✅</div>
+                    <h3>Doe wel</h3>
+                    <p>Startpunt, inspiratie, kladversie. Check alles.</p>
+                </div>
+                <div class="info-box danger animate-item" style="height: auto; text-align: left;">
+                    <div class="emoji-lg">❌</div>
+                    <h3>Doe niet</h3>
+                    <p>Blind vertrouwen of copy-paste zonder lezen.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>AI-beleid in de klas 🏫</h2>
+            <p class="animate-item">Niet elke taak is hetzelfde. Word geen vijanden, maar goede vrienden.</p>
+            <div class="info-box animate-item" style="margin-top: 30px; text-align: center; background: #fff;">
+                <p>Niet elke taak is hetzelfde. Soms mag je een rekenmachine gebruiken, soms moet je hoofdrekenen. Met AI is het net zo.</p>
+                <div style="display: flex; justify-content: space-between; margin-top: 30px; gap: 10px;">
+                    <div style="flex:1; background:#e53e3e; height: 10px; border-radius: 5px;"></div>
+                    <div style="flex:1; background:#ed8936; height: 10px; border-radius: 5px;"></div>
+                    <div style="flex:1; background:#667eea; height: 10px; border-radius: 5px;"></div>
+                    <div style="flex:1; background:#764ba2; height: 10px; border-radius: 5px;"></div>
+                    <div style="flex:1; background:#48bb78; height: 10px; border-radius: 5px;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.8em; font-weight: bold; color: var(--text-light);">
+                    <span>Geen AI</span>
+                    <span>Volledige Co-creatie</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="animate-item">De Balans: Kansen vs. Risico's ⚖️</h2>
+            <div class="split-layout animate-item" style="margin-top: 40px;">
+                <div class="feature-col pros" style="height: auto;">
+                    <h3>🚀 De Zichtbare Winst</h3>
+                    <ul class="clean-list" style="margin-top:20px;">
+                        <li>Enorme tijdwinst bij voorbereiding.</li>
+                        <li>Makkelijker differentiëren.</li>
+                        <li>Inspiratiebron voor creatieve lessen.</li>
+                        <li>Ondersteuning bij taal en vertaling.</li>
+                    </ul>
+                </div>
+                <div class="feature-col danger" style="height: auto;">
+                    <h3>⚠️ De Verborgen Prijs</h3>
+                    <ul class="clean-list" style="margin-top:20px;">
+                        <li>Bias en stereotypes in de antwoorden.</li>
+                        <li>Privacy-risico's met leerlinggegevens.</li>
+                        <li>Hallucinaties (Fake News).</li>
+                        <li>Afhankelijkheid en verlies van eigen kritisch denken.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="animate-item" style="text-align:center; margin-top:40px; font-style:italic; font-size: 1.2em; color: var(--text-light);">
+                "Gebruik AI als een hefboom, maar verlies de grond niet onder je voeten."
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>EU AI Act 🇪🇺</h2>
+            <div class="split-layout">
+                <div class="info-box animate-item" style="height:auto; display:block; padding:0; overflow:hidden; border:none; box-shadow: var(--shadow);">
+                    <img src="risico.jpeg" style="width:100%; height:100%; object-fit:cover; border-radius: 12px;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:15px; justify-content: center;">
+                    <h3 style="color:var(--text-light); text-align:center; margin-bottom:10px;">Onderwijs = "Hoog Risico" sector</h3>
+                    
+                    <div class="info-box danger animate-item" style="height:auto; padding: 15px;">
+                        <h3 style="margin:0; font-size:1.1em;">🔴 Onaanvaardbaar</h3>
+                        <p style="margin:5px 0 0 0; font-size:0.9em;">Emotie-herkenning bij leerlingen.</p>
+                    </div>
+                    
+                    <div class="info-box warning animate-item" style="height:auto; padding: 15px;">
+                        <h3 style="margin:0; font-size:1.1em;">🟠 Hoog Risico</h3>
+                        <p style="margin:5px 0 0 0; font-size:0.9em;">Inschrijvingssystemen, evaluatie, schooladvies, anti-spieksoftware.</p>
+                    </div>
+                    
+                    <div class="info-box success animate-item" style="height:auto; padding: 15px;">
+                        <h3 style="margin:0; font-size:1.1em;">🟢 Beperkt Risico</h3>
+                        <p style="margin:5px 0 0 0; font-size:0.9em;">AI gegenereerde content.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Niveau 1 & 2: De Basis 🧱</h2>
+            <div class="step-row animate-item">
+                <div class="step-icon">⛔</div>
+                <div class="info-box danger step-content" style="text-align: left;">
+                    <div class="level-badge badge-red">Level 1</div>
+                    <h3>Geen AI toegelaten</h3>
+                    <p style="font-size:0.9em;"><strong>Wanneer?</strong> Kennistoetsen, examens, in de klas zonder schermen. Doel: Puur begrip testen.</p>
+                </div>
+            </div>
+            <div class="step-row animate-item">
+                <div class="step-icon">💡</div>
+                <div class="info-box warning step-content" style="text-align: left;">
+                    <div class="level-badge" style="background: var(--accent-orange);">Level 2</div>
+                    <h3>Ideeën & Structuur</h3>
+                    <p style="font-size:0.9em;"><strong>Wanneer?</strong> Brainstormen, writers block. Leerling schrijft zelf, AI is sparringpartner.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+             <h2>Niveau 3 & 4: Samenwerking 🤝</h2>
+            <div class="step-row animate-item">
+                <div class="step-icon">✍️</div>
+                <div class="info-box step-content" style="text-align: left; border-left-color: var(--primary);">
+                    <div class="level-badge" style="background: var(--primary);">Level 3</div>
+                    <h3>Redacteur</h3>
+                    <p style="font-size:0.9em;">Leerling schrijft, AI verbetert spelling/stijl. Inhoud blijft van leerling.</p>
+                </div>
+            </div>
+            <div class="step-row animate-item">
+                <div class="step-icon">🤖</div>
+                <div class="info-box step-content" style="text-align: left; border-left-color: var(--secondary);">
+                    <div class="level-badge" style="background: var(--secondary);">Level 4</div>
+                    <h3>Co-creatie</h3>
+                    <p style="font-size:0.9em;">AI genereert delen, leerling stuurt bij. Transparantie verplicht!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Wat mag er concreet? 🚦</h2>
+            <div class="grid-layout" style="grid-template-columns: 1fr 1fr 1fr; gap:20px; font-size: 0.9em;">
+                
+                <div class="feature-col pros fragment" style="height:auto;">
+                    <h3>1. Content maken</h3>
+                    <div class="badge" style="background:var(--accent-green); color:white;">JA - Laag risico</div>
+                    <p style="font-size: 0.9em;">Lesmateriaal, quizvragen, beelden. Wel letten op ethiek.</p>
+                </div>
+
+                <div class="feature-col fragment" style="height:auto; border-top: 5px solid var(--secondary);">
+                    <h3>2. Leerling Accounts</h3>
+                    <div class="badge" style="background:var(--secondary); color:white;">LEEFTIJD 13+</div>
+                    <p style="font-size: 0.9em;">Let op de gebruiksvoorwaarden. Vaak toestemming ouders nodig.</p>
+                </div>
+
+                <div class="feature-col warning fragment" style="height:auto;">
+                    <h3>3. Verbeteren met AI</h3>
+                    <div class="badge" style="background:var(--accent-orange); color:white;">OPLETTEN</div>
+                    <p style="font-size: 0.9em;">Mens moet de laatste check doen. Data moet anoniem blijven!</p>
+                </div>
+
+                <div class="feature-col warning fragment" style="height:auto;">
+                    <h3>4. Controle op AI</h3>
+                    <div class="badge" style="background:var(--accent-orange); color:white;">ONBETROUWBAAR</div>
+                    <p style="font-size: 0.9em;">Detectors werken niet goed. Focus op procesevaluatie.</p>
+                </div>
+
+                <div class="feature-col danger fragment" style="height:auto;">
+                    <h3>5. Handboek uploaden</h3>
+                    <div class="badge" style="background:var(--accent-red); color:white;">NEE</div>
+                    <p style="font-size: 0.9em;">Auteursrechtelijk beschermd werk mag je niet voeden aan publieke AI.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Bronnen & Links 📚</h2>
+            <p class="animate-item">Door de bomen het bos zien: de belangrijkste kaders.</p>
+            <div class="split-layout animate-item" style="font-size: 0.9em;">
+                <div class="feature-col">
+                    <h3>Beleid & Ethiek</h3>
+                    <ul class="clean-list">
+                        <li><a href="https://assets.vlaanderen.be/image/upload/v1671786848/ethische_richtsnoeren_voor_het_gebruik_van_artificiële_intelligentie_AI_en_data_bij_onderwijzen_en_leren_voor_onderwijsactoren_jshhkk.pdf" target="_blank">Europese Commissie: Ethische richtsnoeren</a></li>
+                        <li><a href="https://unesdoc.unesco.org/ark:/48223/pf0000381494.locale=en" target="_blank">UNESCO: Minding the data (Privacy)</a></li>
+                        <li><a href="https://www.vlaanderen.be/digitaal-vlaanderen/onze-diensten-en-platformen/ai-expertisecentrum/het-ai-playbook" target="_blank">Digitaal Vlaanderen: AI Playbook</a></li>
+                        <li><a href="https://www.klasse.be/742009/wetgeving-ai-in-onderwijs-wat-mag-niet-volgens-ai-act/" target="_blank">Klasse: Wetgeving AI in onderwijs</a></li>
+                        <li><a href="https://www.gartner.com/en/documents/5355363" target="_blank">Gartner: AI opportunity radar</a></li>
+                    </ul>
+                </div>
+                <div class="feature-col">
+                    <h3>Praktijk & Innovatie</h3>
+                    <ul class="clean-list">
+                        <li><a href="https://centrumdigitaalleren.be/brain-tool/" target="_blank"><strong>Brain Tool (Centrum Digitaal Leren)</strong></a></li>
+                        <li><a href="https://www.kennisnet.nl/technologische-innovatie/" target="_blank">Kennisnet: Technologische innovatie</a></li>
+                        <li><a href="https://www.vlaanderen.be/kenniscentrum-digisprong/themas/innovatie/artificiele-intelligentie" target="_blank">Kenniscentrum DigiSprong: AI</a></li>
+                        <li><a href="https://pro.g-o.be/nieuws/ai-in-de-klas-en-op-school-de-gids-om-ai-kansen-echt-te-benutten-en-uitdagingen-te-begrijpen/" target="_blank">GO! Pro: Kennisgids gebruik AI</a></li>
+                        <li><a href="https://www.dwengo.org/aiopschool/" target="_blank">Dwengo: AI op school</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Samenvatting: Wat kan NIET? 🛑</h2>
+            <div class="grid-layout" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="info-box danger animate-item">
+                    <h3>1. 100% Betrouwbaarheid</h3>
+                    <p>Het model kan niet bestaand onderzoek verzinnen, hallucineren en zichzelf verliezen in onzin.</p>
+                </div>
+                <div class="info-box danger animate-item">
+                    <h3>2. Eerlijkheid</h3>
+                    <p>Modellen bevatten vooroordelen (bias) en kunnen onbewust desinformatie verspreiden.</p>
+                </div>
+                <div class="info-box warning animate-item">
+                    <h3>3. Up-to-date zijn</h3>
+                    <p>Modellen moeten getraind worden. De kennis is vaak gebaseerd op data die 2 tot 3 jaar oud is.</p>
+                </div>
+                <div class="info-box warning animate-item">
+                    <h3>4. Emotionele Intelligentie</h3>
+                    <p>AI heeft geen sociale vaardigheden, geen empathie en geen zelfkennis.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Samenvatting: Wat kan WEL? 🚀</h2>
+            <div class="grid-layout" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="info-box success animate-item">
+                    <h3>🎭 Persona's</h3>
+                    <p>Zet AI in als studiehulp, persoonlijke taalcoach of als kritische stem (advocaat van de duivel).</p>
+                </div>
+                <div class="info-box success animate-item">
+                    <h3>🗣️ Taal gebruiken</h3>
+                    <p>Analyse op hoog niveau. Het zijn taalmodellen: hierin excelleren ze.</p>
+                </div>
+                <div class="info-box success animate-item">
+                    <h3>📉 Drempel verlagen</h3>
+                    <p>Het is voor leerlingen vaak makkelijker om hulp te vragen aan een machine zonder angst voor een oordeel.</p>
+                </div>
+                <div class="info-box success animate-item">
+                    <h3>🤖 Automatisatie</h3>
+                    <p>Saaie, repetitieve taken overnemen zodat jij meer tijd hebt voor de leerling.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="slide-counter">1 / 44</div>
+    <div class="controls">
+        <button class="btn-nav" id="prevBtn">←</button>
+        <button class="btn-nav" id="nextBtn">→</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const counter = document.querySelector('.slide-counter');
+
+        function updateCounter() {
+            counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                    // Reset animaties voor herhaling
+                    const items = slide.querySelectorAll('.animate-item');
+                    items.forEach((item, k) => {
+                        item.classList.remove('in-view');
+                        setTimeout(() => item.classList.add('in-view'), k * 100);
+                    });
+                }
+            });
+            currentSlide = index;
+            updateCounter();
+        }
+
+        function nextSlide() {
+            const activeSlide = slides[currentSlide];
+            const fragments = activeSlide.querySelectorAll('.fragment');
+            const hiddenFragments = Array.from(fragments).filter(f => !f.classList.contains('visible'));
+
+            if (hiddenFragments.length > 0) {
+                const nextFragment = hiddenFragments[0];
+                // Kleine vertraging voor smooth effect
+                setTimeout(() => {
+                    nextFragment.classList.add('visible');
+                }, 10);
+            } else {
+                if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() { 
+            if (currentSlide > 0) showSlide(currentSlide - 1); 
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            prevSlide();
+        });
+        document.getElementById('nextBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            nextSlide();
+        });
+        document.addEventListener('keydown', (e) => {
+            if(['ArrowRight', ' ', 'Enter'].includes(e.key)) nextSlide();
+            if(['ArrowLeft', 'Backspace'].includes(e.key)) prevSlide();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.quiz-box') || e.target.closest('.controls') || e.target.tagName === 'A') return;
+            nextSlide();
+        });
+
+        // Touch support
+        let touchStart = 0;
+        document.addEventListener('touchstart', e => touchStart = e.changedTouches[0].screenX);
+        document.addEventListener('touchend', e => {
+            if (e.changedTouches[0].screenX < touchStart - 50) nextSlide();
+            if (e.changedTouches[0].screenX > touchStart + 50) prevSlide();
+        });
+
+        // Start
+        showSlide(0);
+    </script>
+</body>
+</html>
